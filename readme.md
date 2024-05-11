@@ -1,3 +1,5 @@
+# Invariant regressions on point clouds for cosmology
+
 This document describes the overall organization of this project.
 
 Main types of directories:
@@ -22,6 +24,7 @@ The main data directories are:
 The sorts of generated datasets are as follows:
  - `features_and_targets`: The features (such as mass and concentration) and targets (such as stellar mass) of the dataset. I separated this out since it's expensive to load the whole dataset, so we are well-served by loading just the features without looking at the full point clouds. Features are `SubhaloC200` (concentration) and `Group_M_Crit200` (mass). 
  - `kmeans_subsampled_n{}_s{}.npz`: The $k$-means subsampled dataset. The number following `n` is how many trials of $k$-means that were run (this is the second axis of the resulting `numpy` array). The number following `s` is how many clusters were used (this is the third axis of the resulting array).
+ - `train_indices.txt` and `test_indices.txt`: these are text files with the index of the train/test split on each line. They can be read in with `np.loadtxt`.
 
 The `src` directory contains all `.py` files. I'll pare down the content I upload to github and describe the subdirectories below:
  - `gw`
