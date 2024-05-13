@@ -2,12 +2,14 @@ from dataclasses import dataclass
 import datetime
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal, Optional
 import jax.numpy as jnp
 import jax
+import jax.typing
 from tqdm.notebook import tqdm
 from src.gw.lower_bounds import second
 from src.summarize.oat import oat_validate_knn
+from src.summarize.train_test import train_test_knn
 import numpy as np
 from itertools import product
 import pickle
@@ -208,6 +210,31 @@ class ProblemContext:
     concentrations: jnp.ndarray
     labels: jnp.ndarray
 
+    def get_phase_points(
+        self, rescale_strategy: Literal["unitless", "dispersion", "none"], tau: float
+    ):
+        if rescale_strategy == "unitless":
+            positions_rescaled, velocities_rescaled = make_dimensionless(
+                self.points,
+                self.velocities,
+                self.masses,
+            )
+        if rescale_strategy == "dispersion":
+            positions_rescaled = rescale_by_dispersion(self.points)
+            velocities_rescaled = rescale_by_dispersion(self.velocities)
+
+        if rescale_strategy == "none":
+            positions_rescaled = self.points
+            velocities_rescaled = self.velocities
+        phase_points = jnp.concatenate(
+            [
+                positions_rescaled,
+                tau * velocities_rescaled,
+            ],
+            axis=-1,
+        )
+        return phase_points
+
 
 class Hyperparametrization:
     """
@@ -274,10 +301,15 @@ class Hyperparametrization:
         return self.n_neighbors
 
 
-def get_losses(
+def loss_pipeline(
     problem_context: ProblemContext,
     hyperparametrization: Hyperparametrization,
+    eval_func: Callable[
+        [jax.typing.ArrayLike, jax.typing.ArrayLike, Optional[int], Optional[str]],
+        float,
+    ],
     pbar=True,
+    inner_pbar=False,
 ):
     losses = []
 
@@ -287,29 +319,10 @@ def get_losses(
         else hyperparametrization.first_layer_params
     )
     for rescale_strategy, p, q, tau in _pbar:
-        if rescale_strategy == "unitless":
-            positions_rescaled, velocities_rescaled = make_dimensionless(
-                problem_context.points,
-                problem_context.velocities,
-                problem_context.masses,
-            )
-        if rescale_strategy == "dispersion":
-            positions_rescaled = rescale_by_dispersion(problem_context.points)
-            velocities_rescaled = rescale_by_dispersion(problem_context.velocities)
-
-        if rescale_strategy == "none":
-            positions_rescaled = problem_context.points
-            velocities_rescaled = problem_context.velocities
-        phase_points = jnp.concatenate(
-            [
-                positions_rescaled,
-                tau * velocities_rescaled,
-            ],
-            axis=-1,
-        )
+        phase_points = problem_context.get_phase_points(rescale_strategy, tau)
 
         slb_dists = batched_slb_func(
-            p, q, batch_size=5000 // problem_context.masses.shape[0], pbar=False
+            p, q, batch_size=5000 // problem_context.masses.shape[0], pbar=inner_pbar
         )(phase_points, phase_points, problem_context.weights, problem_context.weights)
 
         concentration_dists = jnp.abs(
@@ -334,7 +347,7 @@ def get_losses(
             for n_neighbors in hyperparametrization.third_layer_params:
                 losses.append(
                     {
-                        "loss": oat_validate_knn(
+                        "loss": eval_func(
                             blended_dists,
                             problem_context.labels,
                             k=n_neighbors,
@@ -358,6 +371,35 @@ def get_losses(
         np.array(loss_vals).reshape(*hyperparametrization.params_lengths).squeeze()
     )
     return losses, loss_array
+
+
+def get_oat_losses(
+    problem_context: ProblemContext,
+    hyperparametrization: Hyperparametrization,
+    pbar=True,
+    inner_pbar=False,
+):
+    return loss_pipeline(problem_context, hyperparametrization, oat_validate_knn, pbar, inner_pbar)
+
+
+def get_train_test_losses(
+    problem_context: ProblemContext,
+    hyperparametrization: Hyperparametrization,
+    train_indices: jax.typing.ArrayLike,
+    test_indices: jax.typing.ArrayLike,
+    pbar=True,
+    inner_pbar=False,
+):
+    def eval_func(
+        distance_matrix: jax.typing.ArrayLike,
+        targets: jax.typing.ArrayLike,
+        k: Optional[int],
+        weighting: Optional[str],
+    ):
+        return train_test_knn(
+            distance_matrix, targets, train_indices, test_indices, k, weighting
+        )
+    return loss_pipeline(problem_context, hyperparametrization, eval_func, pbar, inner_pbar)
 
 
 def save_results(
