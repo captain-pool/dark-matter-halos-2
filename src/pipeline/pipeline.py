@@ -253,6 +253,10 @@ class Hyperparametrization:
         alpha_SLB: float | np.ndarray,
         n_neighbors: int | np.ndarray[int],
     ):
+
+        if not isinstance(rescale_strategy, list):
+            rescale_strategy = [rescale_strategy]
+
         self.rescale_strategy = rescale_strategy
         self.p: np.ndarray = np.array(p).flatten()
         self.q: np.ndarray = np.array(q).flatten()
@@ -365,7 +369,6 @@ def loss_pipeline(
                         },
                     }
                 )
-
     loss_vals = [loss["loss"] for loss in losses]
     loss_array = (
         np.array(loss_vals).reshape(*hyperparametrization.params_lengths).squeeze()
@@ -377,7 +380,7 @@ def get_oat_losses(
     problem_context: ProblemContext,
     hyperparametrization: Hyperparametrization,
     pbar=True,
-    inner_pbar=False,
+    inner_pbar=True,
 ):
     return loss_pipeline(problem_context, hyperparametrization, oat_validate_knn, pbar, inner_pbar)
 
