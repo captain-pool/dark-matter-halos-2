@@ -211,7 +211,7 @@ class ProblemContext:
     labels: jnp.ndarray
 
     def get_phase_points(
-        self, rescale_strategy: Literal["unitless", "dispersion", "none"], tau: float
+        self, rescale_strategy: Literal["unitless", "dispersion", "none"], tau: float = 1.0
     ):
         if rescale_strategy == "unitless":
             positions_rescaled, velocities_rescaled = make_dimensionless(
@@ -349,14 +349,17 @@ def loss_pipeline(
             )
 
             for n_neighbors in hyperparametrization.third_layer_params:
-                losses.append(
-                    {
-                        "loss": eval_func(
+                labels, loss = eval_func(
                             blended_dists,
                             problem_context.labels,
                             k=n_neighbors,
                             weighting="uniform",
-                        ),
+                        )
+                losses.append(
+                    {
+                        "loss": loss,
+                        "pred_label": labels,
+                        "gt_label": problem_context.labels,
                         "parameters": {
                             "rescale_strategy": rescale_strategy,
                             "p": p,

@@ -3,26 +3,57 @@ from tqdm.notebook import tqdm
 import numpy as np
 
 
+
 def kmeans_downsample(
-    point_cloud: np.ndarray, downsample_size: int, n_trials: int, pbar: bool = False
+    point_cloud: np.ndarray, velocity: np.ndarray, tau: float, downsample_size: int, n_trials: int, pbar: bool = False
 ):
-    sampled_point_clouds = np.zeros([n_trials, downsample_size, 3])
+    phase_space_points = np.concatenate([point_cloud, tau * velocity], axis=1)
+    sampled_positions = np.zeros([n_trials, downsample_size, 3])
+    sampled_velocities = np.zeros([n_trials, downsample_size, 3])
     sampled_weights = np.zeros([n_trials, downsample_size])
-    point_cloud = fix_torus(point_cloud)
 
     progress_bar = tqdm(range(n_trials)) if pbar else range(n_trials)
     for t in progress_bar:
         kmeans = KMeans(n_clusters=downsample_size, n_init="auto", random_state=t)
-
-        kmeans.fit(point_cloud)
+        kmeans.fit(phase_space_points)
+        
         _labels, counts = np.unique(kmeans.labels_, return_counts=True)
-
         weights = counts / counts.sum()
 
-        sampled_point_clouds[t] = kmeans.cluster_centers_
+        centers = kmeans.cluster_centers_
+        sampled_positions[t] = centers[:, :3]
+        sampled_velocities[t] = centers[:, 3:]
         sampled_weights[t] = weights
 
-    return sampled_point_clouds, sampled_weights
+    return sampled_positions, sampled_velocities, sampled_weights
+
+def kmeans_downsample_points(
+    points_list: list[np.ndarray], velocities_list: list[np.ndarray], taus: list[float], downsample_size: int, n_trials: int, pbar: bool = False
+):
+    sampled_positions_all = []
+    sampled_velocities_all = []
+    sampled_weights_all = []
+
+    for tau in taus:
+        sampled_positions_tau = np.zeros([len(points_list), n_trials, downsample_size, 3])
+        sampled_velocities_tau = np.zeros([len(points_list), n_trials, downsample_size, 3])
+        sampled_weights_tau = np.zeros([len(points_list), n_trials, downsample_size])
+
+        progress_bar = tqdm(list(enumerate(points_list)), desc=f"Tau={tau}") if pbar else enumerate(points_list)
+        for i, point_cloud in progress_bar:
+            positions, velocities, weights = kmeans_downsample(
+                point_cloud, velocities_list[i], tau, downsample_size, n_trials, pbar=False
+            )
+            sampled_positions_tau[i] = positions
+            sampled_velocities_tau[i] = velocities
+            sampled_weights_tau[i] = weights
+
+        sampled_positions_all.append(sampled_positions_tau)
+        sampled_velocities_all.append(sampled_velocities_tau)
+        sampled_weights_all.append(sampled_weights_tau)
+
+    return sampled_positions_all, sampled_velocities_all, sampled_weights_all
+
 
 
 def uniform_downsample(point_cloud, downsample_size, n_trials):
@@ -37,27 +68,7 @@ def uniform_downsample(point_cloud, downsample_size, n_trials):
     return sampled_point_clouds, sampled_weights
 
 
-def kmeans_downsample_points(
-    points_list: list[np.ndarray],
-    downsample_size: int,
-    n_trials: int,
-    pbar: bool = False,
-):
-    sampled_points = np.zeros([len(points_list), n_trials, downsample_size, 3])
-    sampled_weights = np.zeros([len(points_list), n_trials, downsample_size])
 
-    progress_bar = (
-        tqdm(list(enumerate(points_list))) if pbar else enumerate(points_list)
-    )
-    for i, point_cloud in progress_bar:
-        centers, weights = kmeans_downsample(
-            points_list[i], downsample_size, n_trials, pbar=False
-        )
-
-        sampled_points[i] = centers
-        sampled_weights[i] = weights
-
-    return sampled_points, sampled_weights
 
 
 def fix_torus(pts: np.ndarray):

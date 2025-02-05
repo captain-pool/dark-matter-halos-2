@@ -35,10 +35,11 @@ def oat_validate_knn(
         case _:
             raise ValueError(f"Weight method {weighting} unknown")
 
-    residuals = (values * weights).sum(axis=-1) - train_targets
+    predicted_labels = (values * weights).sum(axis=-1)
+    residuals = predicted_labels - train_targets
 
     # returning RMSE:
-    return jnp.sqrt(jnp.mean(jnp.square(residuals))).item()
+    return predicted_labels, jnp.sqrt(jnp.mean(jnp.square(residuals))).item()
 
 
 def oat_cross_validate(
@@ -53,7 +54,7 @@ def oat_cross_validate(
     keys = params.keys()
     params_list = list(product(*params.values()))
     losses = [
-        oat_validate_knn(train_distance_matrix, train_targets, **dict(zip(keys, param)))
+        oat_validate_knn(train_distance_matrix, train_targets, **dict(zip(keys, param)))[1]
         for param in params_list
     ]
 
