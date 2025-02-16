@@ -11,6 +11,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Cached Results
+*.npz
+cache/
+
 # Distribution / packaging
 .Python
 build/

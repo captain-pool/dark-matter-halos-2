@@ -1,0 +1,25 @@
+name: gromov
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip=24.0
+  - python=3.10.14
+  - pip:
+    - httpx==0.27.0
+    - "jax[cuda12]==0.4.30"
+    - jaxopt==0.8.3
+    - jupyter==1.0.0
+    - jupyterlab==4.2.2
+    - matplotlib==3.9.0
+    - notebook==7.2.1
+    - numpy==1.26.4
+    - opt-einsum==3.3.0
+    - optuna==3.6.1
+    - optuna-dashboard==0.15.1
+    - ott-jax==0.4.6
+    - pandas==2.2.2
+    - 'ray[default]==2.40.0'
+    - scikit-learn==1.5.0
+    - scipy==1.13.1
+    - tqdm==4.66.4
