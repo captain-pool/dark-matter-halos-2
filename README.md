@@ -19,7 +19,7 @@ Now navigate to and runn notebook [notebooks/run_pipeline_with_subsample.ipynb](
 
 
 ### DATA
-Place [halo_pointclouds_extended.pkl.gz](https://drive.google.com/file/d/1EKXV2h4Lzk_XS-xG0qVC7_HryP81NhFi/view?usp=sharing) And [halo_pointclouds.pkl.gz](https://drive.google.com/file/d/1oyjjtloTuMEsAipcEDAIQfyAQ1idG29X/view?usp=sharing) in the `data/` folder in the project root.
+Place [halo_pointclouds_extended.pkl.gz](https://drive.google.com/file/d/1EKXV2h4Lzk_XS-xG0qVC7_HryP81NhFi/view?usp=sharing) And [halo_pointclouds.pkl.gz](https://drive.google.com/file/d/1oyjjtloTuMEsAipcEDAIQfyAQ1idG29X/view?usp=sharing) in the `data/` folder in the project root. (Do not extract the .gz file to .pkl)
 
 
 ##### NOTE:
