@@ -15,7 +15,7 @@ $ juypter notebook --ip=0.0.0.0
 ```
 
 
-Now navigate to and runn notebook [notebooks/run_pipeline_with_subsample.ipynb](notebooks/run_pipeline_with_subsample.ipynb)
+Now from the jupyter notebook UI navigate to [notebooks/] and run notebook [run_pipeline_with_subsample.ipynb](notebooks/run_pipeline_with_subsample.ipynb)
 
 
 ### DATA
