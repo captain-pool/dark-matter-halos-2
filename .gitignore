@@ -1,5 +1,6 @@
 # Ignore the files within the data folder (because they are huge)
-data/*
+data/*.pkl
+data/*.pkl.gz
 
 # Python ignore files:
 # -------
